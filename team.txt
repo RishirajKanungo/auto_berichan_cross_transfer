@@ -1,0 +1,48 @@
+GENGHIS (Kingambit) (M) @ Focus Sash
+Ability: Supreme Overlord
+Level: 50
+Shiny: Yes
+Tera Type: Dark
+EVs: 252 HP / 252 Atk / 4 Def
+Brave Nature
+- Iron Head
+- Protect
+- Sucker Punch
+- Low Kick
+
+JOYBOY (Slowking-Galar) (M)
+Ability: Curious Medicine
+Level: 50
+Shiny: Yes
+Tera Type: Poison
+EVs: 252 HP / 140 Def / 116 SpD
+Relaxed Nature
+IVs: 0 Atk
+- Acid Spray
+- Trick Room
+- Heal Pulse
+- Chilly Reception
+
+LUFFY (Heracross) (M)
+Ability: Swarm
+Level: 50
+Shiny: Yes
+Tera Type: Bug
+EVs: 252 HP / 252 Atk / 4 SpD
+Adamant Nature
+- Close Combat
+- Pin Missile
+- Rock Blast
+
+KORMA (Torkoal) (M)
+Ability: Drought
+Level: 50
+Shiny: Yes
+Tera Type: Fire
+EVs: 252 HP / 4 Def / 252 SpA
+Quiet Nature
+IVs: 0 Atk
+- Weather Ball
+- Eruption
+- Protect
+- Earth Power
