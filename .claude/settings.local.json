@@ -6,7 +6,16 @@
       "Bash(Select-Object -Property FullName, PSIsContainer)",
       "Bash(Sort-Object FullName)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:cute.berichan.net)"
+      "WebFetch(domain:cute.berichan.net)",
+      "Skill(update-config)",
+      "Bash(python -c \"import PySide6; print\\('PySide6', PySide6.__version__\\)\")",
+      "Bash(python -c \"import qasync; print\\('qasync ok'\\)\")",
+      "Bash(python -m pip install \"PySide6>=6.6\" \"qasync>=0.27\")",
+      "Bash(python -c ' *)",
+      "Bash(python tools/gen_sounds.py)",
+      "Bash(python -c \"import src.main; print\\('CLI imports OK'\\)\")",
+      "Bash(QT_QPA_PLATFORM=offscreen python -c ' *)",
+      "Bash(python -m src.gui)"
     ]
   }
 }

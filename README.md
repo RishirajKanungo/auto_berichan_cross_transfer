@@ -47,6 +47,30 @@ Key settings to verify:
 
 ## Usage
 
+### Desktop app (recommended)
+
+A Windows GUI wraps the whole flow so you're not tied to the terminal:
+
+```
+python -m src.gui
+```
+or double-run `run_gui.ps1`.
+
+From the app you can:
+- Pick the game, paste or **Load file…** a team (it shows the live parsed count).
+- **Start / Stop** trading at any time — the window stays responsive while it waits.
+- Click the big **Trade Done** button (instead of pressing ENTER) when each trade finishes.
+- Open **⚙ Settings** to edit Twitch username/Client ID/token (with a one-click
+  **Re-authenticate…** button), channel, bot, trade code, and all timing values —
+  no more editing `.env` by hand.
+- Choose the **ready sound** (three soft built-in chimes or your own `.wav`/`.mp3`),
+  set its **volume**, and **Test** it. This replaces the old harsh triple beep.
+
+Settings are saved to `%APPDATA%\BerichanCrossTransfer\settings.json` (migrated
+automatically from your existing `.env` on first launch).
+
+### Terminal (CLI)
+
 **Interactive (paste team):**
 ```
 python -m src.main

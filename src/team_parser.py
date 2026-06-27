@@ -23,12 +23,21 @@ import re
 from dataclasses import dataclass
 
 
+# Twitch chat limit for most accounts (single PRIVMSG must stay under this).
+TWITCH_MAX_CHAT_LENGTH = 500
+
+
 @dataclass
 class Pokemon:
     nickname: str       # Custom nickname if set, otherwise species name
     species: str        # Species name extracted from parentheses (or same as nickname)
     lines: list[str]    # Individual non-empty lines of the block
     raw_block: str      # Original text of the block
+
+    @property
+    def chat_message(self) -> str:
+        """Single-line Showdown set for one Twitch chat message (Berichan format)."""
+        return " ".join(self.lines)
 
 
 def _parse_header(first_line: str) -> tuple[str, str]:
@@ -73,7 +82,7 @@ def parse_team(text: str) -> list[Pokemon]:
         if not block:
             continue
 
-        lines = [line for line in block.splitlines() if line.strip()]
+        lines = [line.strip() for line in block.splitlines() if line.strip()]
         if not lines:
             continue
 

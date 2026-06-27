@@ -1,48 +1,75 @@
-GENGHIS (Kingambit) (M) @ Focus Sash
-Ability: Supreme Overlord
+KRATOS (Incineroar) (M) @ Sitrus Berry
+Ability: Intimidate
 Level: 50
 Shiny: Yes
-Tera Type: Dark
-EVs: 252 HP / 252 Atk / 4 Def
-Brave Nature
-- Iron Head
-- Protect
-- Sucker Punch
-- Low Kick
-
-JOYBOY (Slowking-Galar) (M)
-Ability: Curious Medicine
-Level: 50
-Shiny: Yes
-Tera Type: Poison
-EVs: 252 HP / 140 Def / 116 SpD
-Relaxed Nature
-IVs: 0 Atk
-- Acid Spray
-- Trick Room
-- Heal Pulse
-- Chilly Reception
-
-LUFFY (Heracross) (M)
-Ability: Swarm
-Level: 50
-Shiny: Yes
-Tera Type: Bug
+Tera Type: Fire
 EVs: 252 HP / 252 Atk / 4 SpD
 Adamant Nature
+- Fake Out
+- Darkest Lariat
+- Flare Blitz
 - Close Combat
-- Pin Missile
-- Rock Blast
 
-KORMA (Torkoal) (M)
+GHANA (Torkoal) (M) @ Heat Rock
 Ability: Drought
 Level: 50
 Shiny: Yes
 Tera Type: Fire
-EVs: 252 HP / 4 Def / 252 SpA
+EVs: 252 HP / 252 SpA / 4 SpD
 Quiet Nature
 IVs: 0 Atk
 - Weather Ball
-- Eruption
 - Protect
+- Eruption
 - Earth Power
+
+CHUGJUG (Sableye) (M) @ Light Clay
+Ability: Prankster
+Level: 50
+Shiny: Yes
+Tera Type: Dark
+EVs: 252 HP / 252 Def / 4 SpD
+Impish Nature
+- Sunny Day
+- Quash
+- Fake Out
+- Foul Play
+
+SHINIGAMI (Farigiraf) (M) @ Safety Goggles
+Ability: Armor Tail
+Level: 50
+Shiny: Yes
+Tera Type: Normal
+EVs: 252 HP / 196 Def / 60 SpD
+Bold Nature
+IVs: 0 Atk
+- Trick Room
+- Thunderbolt
+- Psychic
+- Helping Hand
+
+GORI (Venusaur) (M) @ Focus Sash
+Ability: Chlorophyll
+Level: 50
+Shiny: Yes
+Tera Type: Grass
+EVs: 148 HP / 252 SpA / 108 Spe
+Modest Nature
+IVs: 0 Atk
+- Sleep Powder
+- Weather Ball
+- Sludge Bomb
+- Giga Drain
+
+MINA (Pyroar) (F) @ Life Orb
+Ability: Unnerve
+Level: 50
+Shiny: Yes
+Tera Type: Fire
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+IVs: 0 Atk
+- Protect
+- Overheat
+- Solar Beam
+- Heat Wave

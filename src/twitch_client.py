@@ -3,8 +3,8 @@ Async Twitch client combining:
   - IRC (chat read/write, PING/PONG keepalive)
   - Helix REST API (whispers, user-ID lookup)
 
-The bot sends each line of a Pokemon block as a separate PRIVMSG to
-mimic a user pasting multi-line text. Whispers go through the Helix
+Each Pokemon is sent as one PRIVMSG (space-joined Showdown set).
+Whispers go through the Helix
 API because Twitch deprecated IRC-based whispers for non-verified bots.
 """
 

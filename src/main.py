@@ -16,6 +16,8 @@ from pathlib import Path
 from colorama import Fore, Style, init as colorama_init
 
 from .config import Config
+from .games import prompt_game
+from .reporter import ConsoleReporter
 from .team_parser import parse_team
 from .twitch_client import TwitchClient
 from .trade_manager import TradeManager
@@ -52,7 +54,9 @@ def _read_team_interactive() -> str:
     return "\n".join(lines)
 
 
-def _print_team_summary(pokemon_list, trade_code: str, channel: str, bot: str) -> None:
+def _print_team_summary(
+    pokemon_list, trade_code: str, channel: str, bot: str, trade_command: str
+) -> None:
     print(f"\n{Fore.GREEN}Parsed {len(pokemon_list)} Pokemon:{Style.RESET_ALL}")
     for i, mon in enumerate(pokemon_list, 1):
         label = mon.nickname if mon.nickname != mon.species else mon.species
@@ -63,6 +67,7 @@ def _print_team_summary(pokemon_list, trade_code: str, channel: str, bot: str) -
     print(f"\n{Fore.YELLOW}Settings:{Style.RESET_ALL}")
     print(f"  Channel   : #{channel}")
     print(f"  Bot       : @{bot}")
+    print(f"  Command   : {trade_command}")
     print(f"  Trade code: {trade_code}")
 
 
@@ -72,7 +77,9 @@ async def _run(cfg: Config, team_text: str) -> None:
         print(f"{Fore.RED}No Pokemon found in the provided text. Exiting.{Style.RESET_ALL}")
         sys.exit(1)
 
-    _print_team_summary(pokemon_list, cfg.trade_code, cfg.channel, cfg.bot_username)
+    _print_team_summary(
+        pokemon_list, cfg.trade_code, cfg.channel, cfg.bot_username, cfg.trade_command
+    )
 
     answer = input(f"\n{Fore.CYAN}Start trading? (y/n): {Style.RESET_ALL}").strip().lower()
     if answer != "y":
@@ -80,7 +87,7 @@ async def _run(cfg: Config, team_text: str) -> None:
         return
 
     client = TwitchClient(cfg)
-    manager = TradeManager(cfg, client)
+    manager = TradeManager(cfg, client, ConsoleReporter())
     manager.register()
 
     await client.connect()
@@ -123,6 +130,9 @@ def main() -> None:
 
     if trade_code_override:
         cfg.trade_code = trade_code_override
+
+    game = prompt_game()
+    cfg.trade_command = game.command
 
     if team_file:
         path = Path(team_file)

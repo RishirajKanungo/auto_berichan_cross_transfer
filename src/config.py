@@ -1,6 +1,25 @@
+"""
+Application configuration.
+
+Config is the single source of truth for credentials, trade settings, timing
+and the ready-sound preferences. It can be:
+
+  - loaded from / saved to a JSON settings file (used by the GUI), and
+  - migrated from a legacy .env file the first time the GUI runs.
+
+The CLI still works via from_env(); the GUI uses load()/save().
+"""
+
+from __future__ import annotations
+
+import json
 import os
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, fields
+from pathlib import Path
+
 from dotenv import load_dotenv
+
+from .paths import settings_file
 
 load_dotenv()
 
@@ -19,6 +38,7 @@ class Config:
 
     # Trade settings
     trade_code: str = "24932000"
+    trade_command: str = "!tradeSV"  # Berichan !trade* prefix for target game
 
     # Timing (seconds)
     line_send_delay: float = 0.6
@@ -26,15 +46,32 @@ class Config:
     inter_trade_delay: float = 120.0
     trade_timeout: float = 600.0
 
+    # Ready-sound preferences (GUI). sound_path == "" means use the bundled
+    # default chime; volume is 0.0–1.0.
+    sound_enabled: bool = True
+    sound_path: str = ""
+    sound_volume: float = 0.5
+
+    # Fields that live only in .env / runtime, never persisted to settings.json.
+    _DERIVED = {"oauth_token", "access_token"}
+
+    # ------------------------------------------------------------------
+    # Token helpers
+    # ------------------------------------------------------------------
+
+    def set_token(self, raw: str) -> None:
+        """Accept a token with or without the 'oauth:' prefix and set both forms."""
+        raw = raw.strip()
+        self.oauth_token = raw if raw.startswith("oauth:") else f"oauth:{raw}"
+        self.access_token = raw[len("oauth:"):] if raw.startswith("oauth:") else raw
+
+    # ------------------------------------------------------------------
+    # Legacy .env loading (CLI + first-run migration)
+    # ------------------------------------------------------------------
+
     @classmethod
     def from_env(cls) -> "Config":
-        raw = os.getenv("TWITCH_OAUTH_TOKEN", "")
-        irc_token = raw if raw.startswith("oauth:") else f"oauth:{raw}"
-        access = raw.replace("oauth:", "") if raw.startswith("oauth:") else raw
-
-        return cls(
-            oauth_token=irc_token,
-            access_token=access,
+        cfg = cls(
             client_id=os.getenv("TWITCH_CLIENT_ID", ""),
             username=os.getenv("TWITCH_USERNAME", "").lower(),
             channel=os.getenv("TWITCH_CHANNEL", "berichandev").lower(),
@@ -45,6 +82,54 @@ class Config:
             inter_trade_delay=float(os.getenv("INTER_TRADE_DELAY", "120.0")),
             trade_timeout=float(os.getenv("TRADE_TIMEOUT", "600.0")),
         )
+        cfg.set_token(os.getenv("TWITCH_OAUTH_TOKEN", ""))
+        return cfg
+
+    # ------------------------------------------------------------------
+    # JSON settings (GUI)
+    # ------------------------------------------------------------------
+
+    def to_dict(self) -> dict:
+        """Serializable settings, including the raw token but not derived fields."""
+        data = {k: v for k, v in asdict(self).items() if k not in self._DERIVED}
+        data["token"] = self.oauth_token  # persist the IRC form, single source
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Config":
+        cfg = cls()
+        known = {f.name for f in fields(cls)}
+        for key, value in data.items():
+            if key in known and key not in cls._DERIVED:
+                setattr(cfg, key, value)
+        cfg.username = (cfg.username or "").lower()
+        cfg.channel = (cfg.channel or "").lower()
+        cfg.set_token(data.get("token", ""))
+        return cfg
+
+    @classmethod
+    def load(cls) -> "Config":
+        """
+        Load settings from the JSON file. On first run (no file yet) migrate
+        from the legacy .env and write the JSON so the GUI owns it from then on.
+        """
+        path = settings_file()
+        if path.exists():
+            try:
+                return cls.from_dict(json.loads(path.read_text(encoding="utf-8")))
+            except (json.JSONDecodeError, OSError):
+                pass  # corrupt/unreadable — fall through to env defaults
+        cfg = cls.from_env()
+        cfg.save()
+        return cfg
+
+    def save(self) -> None:
+        path = settings_file()
+        path.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
+
+    # ------------------------------------------------------------------
+    # Validation
+    # ------------------------------------------------------------------
 
     def validate(self) -> list[str]:
         """Return a list of missing/invalid field names."""
