@@ -8,6 +8,7 @@ import { useTeam } from "@/components/team";
 import { PokemonCard } from "@/components/PokemonCard";
 import { PokemonEditor } from "@/components/PokemonEditor";
 import { SpeciesPicker } from "@/components/SpeciesPicker";
+import { TeamAnalysis } from "@/components/TeamAnalysis";
 import { Modal } from "@/components/ui/Modal";
 import { getSpecies } from "@/lib/data";
 import { normalizeChampionsImport, parseTeam, teamToShowdown } from "@/lib/teamParser";
@@ -86,7 +87,7 @@ export default function Page() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-4xl">
         <header className="mb-5 flex flex-wrap items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold">Team Builder</h1>
@@ -120,6 +121,14 @@ export default function Page() {
               />
             ))}
           </div>
+        )}
+
+        {team.length > 0 && (
+          <section className="mt-8">
+            <h2 className="mb-1 text-lg font-bold">Team Analysis</h2>
+            <p className="muted mb-3 text-sm">Defensive coverage and offensive gaps for your current six — updates live as you edit.</p>
+            <TeamAnalysis team={team} />
+          </section>
         )}
       </div>
 

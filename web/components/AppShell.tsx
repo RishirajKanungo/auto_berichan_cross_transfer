@@ -22,13 +22,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
+      {/* Pinned sidebar. The nav scrolls on its own if it ever overflows, while
+          the footer controls (account / appearance / display size) stay docked at
+          the bottom and always visible — even at large Display sizes. */}
       <aside className="surface sticky top-0 flex h-screen w-[210px] shrink-0 flex-col p-3">
-        <div className="px-2 py-3">
+        <div className="shrink-0 px-2 py-3">
           <div className="text-lg font-bold leading-tight">Berichan</div>
           <div className="accent-text text-lg font-bold leading-tight">Trader</div>
         </div>
 
-        <nav className="mt-3 space-y-1">
+        <nav className="mt-3 flex-1 space-y-1 overflow-y-auto">
           {NAV.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} className="nav-item" data-active={pathname === href}>
               <Icon size={18} /> {label}
@@ -36,7 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="mt-auto space-y-3">
+        <div className="shrink-0 space-y-3 pt-3">
           <AuthButton />
           <div>
             <div className="muted mb-1 px-2 text-xs">Appearance</div>
