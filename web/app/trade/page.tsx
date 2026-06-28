@@ -6,8 +6,9 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/components/auth";
 import { useTeam } from "@/components/team";
+import { getSpecies } from "@/lib/data";
 import { GAMES } from "@/lib/games";
-import { loadLegality, teamIssues } from "@/lib/legality";
+import { canLearn, loadLegality, teamIssues } from "@/lib/legality";
 import { playReady } from "@/lib/sound";
 import { displayName } from "@/lib/teamParser";
 import { TradeEngine, type LogLevel } from "@/lib/tradeEngine";
@@ -40,6 +41,7 @@ export default function TradePage() {
   const [, forceLegality] = useState(0);
   useEffect(() => { loadLegality().then(() => forceLegality((n) => n + 1)); }, []);
   const issues = useMemo(() => teamIssues(team), [team]);
+  const isLegendsGame = settings.gameCommand === "!tradePLZ" || settings.gameCommand === "!tradePLA";
 
   const canTrade = useMemo(
     () => authEnabled && signedIn && !!accessToken && !!user?.login,
@@ -148,10 +150,31 @@ export default function TradePage() {
               {team.length === 0 ? (
                 <p className="muted text-sm">No team loaded. Go to the Team Builder to build or load one.</p>
               ) : (
-                <ol className="muted list-decimal pl-5 text-sm">
-                  {team.map((m, i) => <li key={i}>{displayName(m)}</li>)}
+                <ol className="list-decimal space-y-1 pl-5 text-sm">
+                  {team.map((m, i) => {
+                    const inRoster = !!getSpecies(m.species);
+                    const badMoves = m.moves.filter((mv) => mv && !canLearn(m.species, mv));
+                    const ok = inRoster && badMoves.length === 0;
+                    return (
+                      <li key={i}>
+                        <span className="font-medium">{displayName(m)}</span>{" "}
+                        {ok ? (
+                          <span style={{ color: "#2ecc71" }}>✓ looks legal</span>
+                        ) : (
+                          <span style={{ color: "#e74c3c" }}>
+                            ⚠ {!inRoster ? "not in the Champions roster" : `can't learn: ${badMoves.join(", ")}`}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ol>
               )}
+              <p className="muted mt-3 text-xs">
+                This checks the Champions roster + move learnability. {isLegendsGame
+                  ? "Legends Z-A / Arceus have game-specific rules this app can't fully verify yet — Berichan is the final check."
+                  : "Berichan does the final game-specific legality check when trading."}
+              </p>
             </div>
 
             {/* Legality pre-flight */}
