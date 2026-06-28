@@ -187,7 +187,9 @@ export default function Page() {
                 ))}
               </div>
             </div>
-            {analysisTab === "coverage" ? <TeamAnalysis team={team} /> : <MetaMatchups team={team} />}
+            <div key={analysisTab} className="anim-rise">
+              {analysisTab === "coverage" ? <TeamAnalysis team={team} /> : <MetaMatchups team={team} />}
+            </div>
           </section>
         )}
       </div>
@@ -244,7 +246,9 @@ export default function Page() {
       </Modal>
 
       {toast && (
-        <div className="surface fixed bottom-5 left-1/2 -translate-x-1/2 rounded-lg px-4 py-2 text-sm shadow-xl">{toast}</div>
+        <div className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center">
+          <div className="surface anim-rise pointer-events-auto rounded-lg px-4 py-2 text-sm shadow-xl">{toast}</div>
+        </div>
       )}
     </AppShell>
   );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Boxes, Calculator, Gauge, Repeat, Swords, TrendingUp } from "lucide-react";
 import { AuthButton } from "./AuthButton";
+import { PageTransition } from "./PageTransition";
 import { SCALES, useScale } from "./scale";
 import { THEMES, useTheme } from "./theme";
 
@@ -77,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-x-hidden p-6">{children}</main>
+      <main className="flex-1 overflow-x-hidden p-6"><PageTransition>{children}</PageTransition></main>
     </div>
   );
 }

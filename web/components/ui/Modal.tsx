@@ -34,12 +34,12 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="anim-fade fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.55)" }}
       onMouseDown={onClose}
     >
       <div
-        className={cn("card flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden shadow-2xl", className)}
+        className={cn("card anim-scale flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden shadow-2xl", className)}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {title !== undefined && (

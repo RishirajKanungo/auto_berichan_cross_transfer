@@ -102,3 +102,37 @@ body {
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ------------------------------------------------------------------ */
+/* Motion — smooth, GPU-friendly (opacity/transform only), subtle.     */
+/* Easing token: a soft "ease-out-quint"-ish curve for a fluid feel.   */
+/* ------------------------------------------------------------------ */
+:root { --ease: cubic-bezier(0.22, 0.61, 0.36, 1); }
+
+@keyframes page-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes scale-in { from { opacity: 0; transform: scale(0.965); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.anim-page { animation: page-in 0.32s var(--ease) both; }
+.anim-scale { animation: scale-in 0.16s var(--ease) both; }
+.anim-fade { animation: fade-in 0.2s ease-out both; }
+.anim-rise { animation: rise-in 0.24s var(--ease) both; }
+
+/* Smoother interactive feedback across the board. */
+.btn { transition: border-color .15s var(--ease), background .15s var(--ease), color .15s var(--ease), transform .08s var(--ease), box-shadow .15s var(--ease); }
+.btn:active { transform: translateY(1px) scale(0.985); }
+.nav-item { transition: background .18s var(--ease), color .18s var(--ease), transform .12s var(--ease); }
+.nav-item:hover { transform: translateX(2px); }
+.card { transition: border-color .18s var(--ease), box-shadow .18s var(--ease), transform .18s var(--ease); }
+.chip { transition: border-color .15s var(--ease), background .15s var(--ease); }
+
+/* Honour reduced-motion: collapse all animation + transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
