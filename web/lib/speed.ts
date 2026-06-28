@@ -1,0 +1,148 @@
+// Speed-tier math for the Speed tab — base speed, the common investment spreads,
+// and the in-battle modifiers used by the turn simulator. All level-50, matching
+// the Champions stat system (perfect IVs, Stat Points; 32 SP ≈ a maxed stat).
+//
+// Verified against known values, e.g. Garchomp (base 102): neutral/0 = 122,
+// neutral/+32 = 154, +nature/+32 = 169, +nature/+32 + Scarf = 253.
+
+import { CHAMPIONS_LEVEL, PERFECT_IV } from "./stats";
+
+export type NatureDir = "plus" | "neutral" | "minus";
+const NATURE_MOD: Record<NatureDir, number> = { plus: 1.1, neutral: 1.0, minus: 0.9 };
+
+/** Speed stat at a given level for a base speed + Stat-Point investment + nature. */
+export function speedStat(base: number, sp: number, dir: NatureDir, level = CHAMPIONS_LEVEL): number {
+  const common = Math.floor(((2 * base + PERFECT_IV) * level) / 100);
+  return Math.floor((common + 5 + sp) * NATURE_MOD[dir]);
+}
+
+// --- speed-tier columns ----------------------------------------------------
+
+export interface SpeedCol {
+  key: string;
+  /** Short header for the table. */
+  label: string;
+  /** Full description (tooltip / comparison builder). */
+  full: string;
+  /** Compute the tier value from a base speed. */
+  calc: (base: number) => number;
+}
+
+const scarf = (v: number) => Math.floor(v * 1.5);
+
+// The tiers requested, ordered slow → fast.
+export const SPEED_COLS: SpeedCol[] = [
+  { key: "base", label: "Base", full: "Base speed stat", calc: (b) => b },
+  { key: "min", label: "−Nat 0", full: "Minus-speed nature, 0 SP (Trick Room min)", calc: (b) => speedStat(b, 0, "minus") },
+  { key: "neut0", label: "Neut 0", full: "Neutral nature, 0 SP (uninvested)", calc: (b) => speedStat(b, 0, "neutral") },
+  { key: "neutMax", label: "Neut +32", full: "Neutral nature, 32 SP (max neutral)", calc: (b) => speedStat(b, 32, "neutral") },
+  { key: "max", label: "Max", full: "Plus-speed nature, 32 SP (max speed)", calc: (b) => speedStat(b, 32, "plus") },
+  { key: "neutScarf", label: "Neut +32 Scarf", full: "Neutral nature, 32 SP + Choice Scarf", calc: (b) => scarf(speedStat(b, 32, "neutral")) },
+  { key: "maxScarf", label: "Max Scarf", full: "Plus-speed nature, 32 SP + Choice Scarf", calc: (b) => scarf(speedStat(b, 32, "plus")) },
+];
+
+export const DEFAULT_SORT_COL = "max";
+
+// --- turn simulator --------------------------------------------------------
+
+export type Weather = "none" | "sun" | "rain" | "sand" | "snow";
+export type Terrain = "none" | "grassy" | "electric" | "psychic" | "misty";
+
+/** Minimal move shape the simulator needs (from the bundled move data). */
+export interface MoveLite {
+  name: string;
+  type: string;
+  category: string; // Physical | Special | Status
+  priority: number;
+  flags?: string[];
+}
+
+export interface AbilityDef {
+  id: string;
+  label: string;
+  /** Doubles Speed while this weather is active. */
+  weather?: Weather;
+  /** Speed multiplier always applied (e.g. Unburden when its condition is met). */
+  speedMult?: number;
+  /** Adds priority to moves matching `test`. */
+  prio?: { bonus: number; test: (m: MoveLite) => boolean };
+  /** Always acts last within its priority bracket (Stall). */
+  orderLast?: boolean;
+  note?: string;
+}
+
+export const ABILITIES: AbilityDef[] = [
+  { id: "none", label: "None" },
+  // Speed-doubling weather abilities.
+  { id: "swiftswim", label: "Swift Swim", weather: "rain" },
+  { id: "chlorophyll", label: "Chlorophyll", weather: "sun" },
+  { id: "sandrush", label: "Sand Rush", weather: "sand" },
+  { id: "slushrush", label: "Slush Rush", weather: "snow" },
+  { id: "unburden", label: "Unburden (item used)", speedMult: 2 },
+  // Priority-changing abilities.
+  { id: "prankster", label: "Prankster (+1 status)", prio: { bonus: 1, test: (m) => m.category === "Status" }, note: "Prankster status moves fail vs Dark-types." },
+  { id: "galewings", label: "Gale Wings (+1 Flying @full HP)", prio: { bonus: 1, test: (m) => m.type === "Flying" }, note: "Only at full HP." },
+  { id: "triage", label: "Triage (+3 healing)", prio: { bonus: 3, test: (m) => (m.flags ?? []).includes("Heal") } },
+  // Order-within-bracket abilities.
+  { id: "stall", label: "Stall (moves last)", orderLast: true },
+];
+
+export const ABILITY = (id: string) => ABILITIES.find((a) => a.id === id) ?? ABILITIES[0];
+
+/** Within-bracket item effects + Choice Scarf (speed) handled separately. */
+export const ITEMS: { id: string; label: string; speedMult?: number; orderLast?: boolean; note?: string }[] = [
+  { id: "none", label: "No item" },
+  { id: "scarf", label: "Choice Scarf (×1.5)", speedMult: 1.5 },
+  { id: "ironball", label: "Iron Ball (×0.5)", speedMult: 0.5 },
+  { id: "lagging", label: "Lagging Tail (moves last)", orderLast: true },
+  { id: "quickclaw", label: "Quick Claw (20% first)", note: "20% chance to act first in bracket (random)." },
+  { id: "custap", label: "Custap Berry (first @low HP)", note: "Acts first in bracket when HP ≤ 25%." },
+];
+export const ITEM = (id: string) => ITEMS.find((i) => i.id === id) ?? ITEMS[0];
+
+/** Redirection moves pull single-target attacks from foes onto the user. */
+export const REDIRECTION_MOVES = new Set(["Rage Powder", "Follow Me", "Spotlight"]);
+
+/** Effective priority of a move given the user's ability and the terrain. */
+export function effectivePriority(move: MoveLite | null, abilityId: string, terrain: Terrain): number {
+  if (!move) return 0;
+  let p = move.priority || 0;
+  const ab = ABILITY(abilityId);
+  if (ab.prio && ab.prio.test(move)) p += ab.prio.bonus;
+  // Grassy Glide gains +1 priority in Grassy Terrain.
+  if (terrain === "grassy" && move.name === "Grassy Glide") p += 1;
+  return p;
+}
+
+/** Standard ±stage speed multipliers. */
+export function stageMult(stage: number): number {
+  const s = Math.max(-6, Math.min(6, stage));
+  return s >= 0 ? (2 + s) / 2 : 2 / (2 - s);
+}
+
+export interface Combatant {
+  base: number;
+  sp: number;
+  dir: NatureDir;
+  item: string;           // an ITEMS id
+  tailwind: boolean;
+  paralyzed: boolean;
+  booster: boolean;       // Protosynthesis / Quark Drive on Speed (×1.5)
+  ability: string;        // an ABILITIES id
+  stage: number;          // -6..+6
+}
+
+export function effectiveSpeed(c: Combatant, weather: Weather): number {
+  let s = speedStat(c.base, c.sp, c.dir);
+  s = Math.floor(s * stageMult(c.stage));
+  let mult = 1;
+  const item = ITEM(c.item);
+  if (item.speedMult) mult *= item.speedMult;
+  if (c.tailwind) mult *= 2;
+  if (c.booster) mult *= 1.5;
+  const ab = ABILITY(c.ability);
+  if (ab.weather && ab.weather === weather) mult *= 2;
+  if (ab.speedMult) mult *= ab.speedMult;
+  if (c.paralyzed) mult *= 0.5; // Gen 7+: paralysis halves Speed
+  return Math.floor(s * mult);
+}
