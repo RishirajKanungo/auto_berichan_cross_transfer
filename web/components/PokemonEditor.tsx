@@ -1,0 +1,194 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  abilityDesc, allItems, describeItem, getMove, itemIconUrl, moveSummary, moveTooltip,
+} from "@/lib/data";
+import { categoryIconUrl, spriteUrl, typeIconUrl } from "@/lib/assets";
+import {
+  NATURE_NAMES, STAT_KEYS, STAT_LABELS, evToSp, spSpreadToEvs,
+  type StatLabel,
+} from "@/lib/stats";
+import { TWITCH_MAX_CHAT_LENGTH, chatMessage, newPokemon, syncLines } from "@/lib/teamParser";
+import type { Pokemon, Species } from "@/lib/types";
+import { Combobox } from "./ui/Combobox";
+import { Modal } from "./ui/Modal";
+import { StatSpread } from "./StatSpread";
+
+const TYPES = ["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy","Stellar"];
+
+export function PokemonEditor({
+  open, mon, species, onSave, onClose,
+}: {
+  open: boolean;
+  mon: Pokemon | null;
+  species: Species | null;
+  onSave: (mon: Pokemon) => void;
+  onClose: () => void;
+}) {
+  const init = mon ?? newPokemon({ species: species?.name ?? "" });
+  const [nickname, setNickname] = useState(init.nickname === init.species ? "" : init.nickname);
+  const [gender, setGender] = useState(init.gender || "—");
+  const [item, setItem] = useState(init.item);
+  const [ability, setAbility] = useState(init.ability);
+  const [level, setLevel] = useState(init.level || 50);
+  const [shiny, setShiny] = useState(init.shiny);
+  const [tera, setTera] = useState(init.teraType);
+  const [nature, setNature] = useState(init.nature);
+  const [moves, setMoves] = useState<string[]>([0, 1, 2, 3].map((i) => init.moves[i] ?? ""));
+  const [sp, setSp] = useState<Record<StatLabel, number>>(() => {
+    const out = {} as Record<StatLabel, number>;
+    for (const label of Object.values(STAT_LABELS)) out[label] = evToSp(init.evs[label] ?? 0);
+    return out;
+  });
+
+  const itemNames = useMemo(() => allItems().map((i) => i.name), []);
+  const speciesName = species?.name ?? init.species;
+
+  const build = (): Pokemon =>
+    syncLines(
+      newPokemon({
+        species: speciesName,
+        nickname: nickname.trim() || speciesName,
+        gender: gender === "—" ? "" : gender,
+        item: item.trim(),
+        ability: ability.trim(),
+        level,
+        shiny,
+        teraType: tera.trim(),
+        nature: nature.trim(),
+        evs: spSpreadToEvs(sp),
+        moves: moves.map((m) => m.trim()).filter(Boolean),
+      }),
+    );
+
+  const charLen = chatMessage(build()).length;
+  const over = charLen > TWITCH_MAX_CHAT_LENGTH - 12;
+  const itemIcon = item ? itemIconUrl(item) : null;
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={speciesName ? `Edit ${speciesName}` : "Add Pokémon"}
+      className="max-w-xl"
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={() => { if (speciesName) { onSave(build()); onClose(); } }}>
+            Save
+          </button>
+        </>
+      }
+    >
+      {species && (
+        <div className="card mb-4 flex items-center gap-3 p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={spriteUrl(species.id)} alt={species.name} width={72} height={72} />
+          <div>
+            <div className="text-lg font-bold">{species.name}</div>
+            <div className="mt-1 flex gap-1">
+              {species.types.map((t) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={t} src={typeIconUrl(t)} alt={t} className="h-4" />
+              ))}
+            </div>
+            <div className="muted mt-1 text-[11px]">
+              {STAT_KEYS.map((k) => `${STAT_LABELS[k]} ${species.baseStats[k]}`).join("  ")}
+              {"  ·  BST "}{STAT_KEYS.reduce((s, k) => s + (species.baseStats[k] || 0), 0)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <Field label="Nickname"><input className="input" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder={speciesName} /></Field>
+
+        <Field label="Ability">
+          <Combobox value={ability} onChange={setAbility} options={species?.abilities ?? []} placeholder="Ability" />
+          {abilityDesc(ability) && <p className="muted mt-1 text-xs">{abilityDesc(ability)}</p>}
+        </Field>
+
+        <Field label="Item">
+          <div className="flex items-center gap-2">
+            {itemIcon && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={itemIcon} alt={item} width={28} height={28} className="shrink-0" />
+            )}
+            <div className="flex-1"><Combobox value={item} onChange={setItem} options={itemNames} placeholder="Held item" /></div>
+          </div>
+          {describeItem(item) && <p className="muted mt-1 text-xs">{describeItem(item)}</p>}
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Gender">
+            <select className="input" value={gender} onChange={(e) => setGender(e.target.value)}>
+              <option>—</option><option>M</option><option>F</option>
+            </select>
+          </Field>
+          <Field label="Level">
+            <input type="number" min={1} max={100} className="input" value={level} onChange={(e) => setLevel(Number(e.target.value) || 50)} />
+          </Field>
+          <Field label="Tera Type"><Combobox value={tera} onChange={setTera} options={TYPES} placeholder="Tera" /></Field>
+          <Field label="Nature">
+            <select className="input" value={nature} onChange={(e) => setNature(e.target.value)}>
+              {NATURE_NAMES.map((n) => <option key={n || "neutral"} value={n}>{n || "—"}</option>)}
+            </select>
+          </Field>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={shiny} onChange={(e) => setShiny(e.target.checked)} style={{ accentColor: "var(--accent)" }} /> Shiny
+        </label>
+
+        <div>
+          <div className="mb-1 text-sm font-semibold">Stats — Stat Points (32 max each, 66 total)</div>
+          <div className="card p-3">
+            <StatSpread baseStats={species?.baseStats ?? ({} as Species["baseStats"])} level={level} nature={nature} value={sp} onChange={setSp} />
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-1 text-sm font-semibold">Moves</div>
+          <div className="space-y-2">
+            {moves.map((mv, i) => {
+              const m = getMove(mv);
+              return (
+                <div key={i}>
+                  <Combobox
+                    value={mv}
+                    onChange={(v) => setMoves((prev) => prev.map((x, j) => (j === i ? v : x)))}
+                    options={species?.moves ?? []}
+                    placeholder={`Move ${i + 1}`}
+                  />
+                  {m && (
+                    <div className="mt-0.5 flex items-center gap-1.5" title={moveTooltip(mv)}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={typeIconUrl(m.type)} alt={m.type} className="h-3" />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={categoryIconUrl(m.category)} alt={m.category} className="h-3" />
+                      <span className="muted text-[10px]">{moveSummary(mv)}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="text-right text-xs" style={{ color: over ? "#e74c3c" : "var(--muted)" }}>
+          {charLen} / {TWITCH_MAX_CHAT_LENGTH} chars
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="muted mb-1 block text-xs font-medium">{label}</label>
+      {children}
+    </div>
+  );
+}

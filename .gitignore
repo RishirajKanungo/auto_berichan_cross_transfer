@@ -1,8 +1,33 @@
-# Secrets / local config
+# Secrets / local config (never commit credentials or tokens)
 .env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+credentials.json
 
 # Internal / not for the public repo (kept locally)
 .claude/
+
+# Deployment / hosting (contains project + org IDs)
+.vercel/
+.netlify/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Web app (Next.js) build + deps — belt-and-suspenders over web/.gitignore
+web/node_modules/
+web/.next/
+web/out/
+web/build/
+*.tsbuildinfo
 
 # Python
 __pycache__/
