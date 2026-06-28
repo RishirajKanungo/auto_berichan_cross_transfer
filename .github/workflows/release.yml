@@ -105,7 +105,7 @@ jobs:
             Some Windows 11 PCs have **Smart App Control**, which blocks unsigned apps
             with no "Run anyway" option. If you hit that, run it from source instead —
             no `.exe` needed:
-            1. Download the source: **Code → Download ZIP** on the repo, then extract.
-            2. Double-click **`Run-Berichan-Trader.bat`**. The first run installs
-               everything automatically (needs Python; the launcher opens the download
-               page if it's missing). After that it opens right away.
+            1. Download **Source code (zip)** from the Assets below and extract it.
+            2. Double-click **`Run-Berichan-Trader.bat`** in the extracted folder. The
+               first run installs everything automatically (needs Python; the launcher
+               opens the download page if it's missing). After that it opens instantly.
