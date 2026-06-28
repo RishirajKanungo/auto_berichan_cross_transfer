@@ -8,7 +8,7 @@ import { useAuth } from "@/components/auth";
 import { useTeam } from "@/components/team";
 import { getSpecies } from "@/lib/data";
 import { GAMES } from "@/lib/games";
-import { canLearn, loadLegality, teamIssues } from "@/lib/legality";
+import { canLearnInGame, gameKey, loadLegality, speciesInGame, teamIssues } from "@/lib/legality";
 import { playReady } from "@/lib/sound";
 import { displayName } from "@/lib/teamParser";
 import { TradeEngine, type LogLevel } from "@/lib/tradeEngine";
@@ -40,8 +40,10 @@ export default function TradePage() {
   // legalize when traded). Recomputed when the team changes / data loads.
   const [, forceLegality] = useState(0);
   useEffect(() => { loadLegality().then(() => forceLegality((n) => n + 1)); }, []);
-  const issues = useMemo(() => teamIssues(team), [team]);
-  const isLegendsGame = settings.gameCommand === "!tradePLZ" || settings.gameCommand === "!tradePLA";
+  const gkey = gameKey(settings.gameCommand);
+  const issues = useMemo(() => teamIssues(team, gkey), [team, gkey]);
+  const gameValidated = gkey !== null; // SwSh / Legends Arceus aren't in the dataset yet
+  const currentGameLabel = GAMES.find((g) => g.command === settings.gameCommand)?.label ?? "the game";
 
   const canTrade = useMemo(
     () => authEnabled && signedIn && !!accessToken && !!user?.login,
@@ -153,17 +155,24 @@ export default function TradePage() {
                 <ol className="list-decimal space-y-1 pl-5 text-sm">
                   {team.map((m, i) => {
                     const inRoster = !!getSpecies(m.species);
-                    const badMoves = m.moves.filter((mv) => mv && !canLearn(m.species, mv));
-                    const ok = inRoster && badMoves.length === 0;
+                    let problem = "";
+                    if (!inRoster) {
+                      problem = "not in the Champions roster";
+                    } else if (gameValidated && gkey) {
+                      if (!speciesInGame(m.species, gkey)) {
+                        problem = `not available in ${currentGameLabel}`;
+                      } else {
+                        const bad = m.moves.filter((mv) => mv && !canLearnInGame(m.species, mv, gkey));
+                        if (bad.length) problem = `can't learn ${bad.join(", ")}`;
+                      }
+                    }
                     return (
                       <li key={i}>
                         <span className="font-medium">{displayName(m)}</span>{" "}
-                        {ok ? (
-                          <span style={{ color: "#2ecc71" }}>✓ looks legal</span>
+                        {problem ? (
+                          <span style={{ color: "#e74c3c" }}>⚠ {problem}</span>
                         ) : (
-                          <span style={{ color: "#e74c3c" }}>
-                            ⚠ {!inRoster ? "not in the Champions roster" : `can't learn: ${badMoves.join(", ")}`}
-                          </span>
+                          <span style={{ color: "#2ecc71" }}>✓ legal{gameValidated ? ` for ${currentGameLabel}` : ""}</span>
                         )}
                       </li>
                     );
@@ -171,9 +180,9 @@ export default function TradePage() {
                 </ol>
               )}
               <p className="muted mt-3 text-xs">
-                This checks the Champions roster + move learnability. {isLegendsGame
-                  ? "Legends Z-A / Arceus have game-specific rules this app can't fully verify yet — Berichan is the final check."
-                  : "Berichan does the final game-specific legality check when trading."}
+                {gameValidated
+                  ? `Validated against ${currentGameLabel} learnsets (Serebii). Berichan does the final check.`
+                  : "This game's learnsets aren't in the app yet — Berichan is the final legality check."}
               </p>
             </div>
 
@@ -181,11 +190,11 @@ export default function TradePage() {
             {issues.length > 0 && (
               <div className="card mb-3 p-3" style={{ borderColor: "#e74c3c" }}>
                 <div className="mb-1 text-sm font-semibold" style={{ color: "#e74c3c" }}>
-                  ⚠ These won&apos;t legalize — fix them on the Team Builder before trading:
+                  ⚠ These won&apos;t legalize in {currentGameLabel} — fix them on the Team Builder first:
                 </div>
                 <ul className="muted list-disc pl-5 text-xs">
                   {issues.map((it, i) => (
-                    <li key={i}><b>{it.pokemon}</b> can&apos;t learn <b>{it.move}</b> in the mainline games.</li>
+                    <li key={i}><b>{it.pokemon}</b> — {it.reason}.</li>
                   ))}
                 </ul>
               </div>

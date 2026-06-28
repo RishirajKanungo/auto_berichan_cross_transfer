@@ -5,7 +5,7 @@ import {
   abilityDesc, allItems, describeItem, getMove, itemIconUrl, moveSummary,
 } from "@/lib/data";
 import { getMeta, recommended, type MetaData, type MetaFormat } from "@/lib/meta";
-import { canLearn, loadLegality } from "@/lib/legality";
+import { canLearnAny, loadLegality } from "@/lib/legality";
 import { categoryIconUrl, spriteUrl, typeIconUrl } from "@/lib/assets";
 import {
   NATURE_NAMES, STAT_KEYS, STAT_LABELS, STAT_ORDER, evToSp, spSpreadToEvs,
@@ -249,9 +249,9 @@ export function PokemonEditor({
                     )}
                   </div>
                 )}
-                {mv && !canLearn(speciesName, mv) && (
+                {mv && !canLearnAny(speciesName, mv) && (
                   <p className="mt-1.5 text-xs font-medium" style={{ color: "#e74c3c" }}>
-                    ⚠ {speciesName} can&apos;t learn {mv} — this won&apos;t legalize when traded.
+                    ⚠ {speciesName} can&apos;t learn {mv} in Scarlet/Violet or Legends Z-A — won&apos;t legalize.
                   </p>
                 )}
               </div>
