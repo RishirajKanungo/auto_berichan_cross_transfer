@@ -9,6 +9,7 @@ import { PokemonCard } from "@/components/PokemonCard";
 import { PokemonEditor } from "@/components/PokemonEditor";
 import { SpeciesPicker } from "@/components/SpeciesPicker";
 import { TeamAnalysis } from "@/components/TeamAnalysis";
+import { MetaMatchups } from "@/components/MetaMatchups";
 import { Modal } from "@/components/ui/Modal";
 import { getSpecies } from "@/lib/data";
 import { normalizeChampionsImport, parseTeam, teamToShowdown } from "@/lib/teamParser";
@@ -28,6 +29,7 @@ export default function Page() {
   const [loadOpen, setLoadOpen] = useState(false);
   const [savedNames, setSavedNames] = useState<string[]>([]);
   const [toast, setToast] = useState("");
+  const [analysisTab, setAnalysisTab] = useState<"coverage" | "matchups">("coverage");
 
   const flash = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 2200); };
 
@@ -125,9 +127,18 @@ export default function Page() {
 
         {team.length > 0 && (
           <section className="mt-8">
-            <h2 className="mb-1 text-lg font-bold">Team Analysis</h2>
-            <p className="muted mb-3 text-sm">Defensive coverage and offensive gaps for your current six — updates live as you edit.</p>
-            <TeamAnalysis team={team} />
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-bold">Team Analysis</h2>
+              <div className="ml-auto flex gap-1">
+                {([["coverage", "Type coverage"], ["matchups", "Vs the meta"]] as const).map(([k, label]) => (
+                  <button key={k} className="btn" onClick={() => setAnalysisTab(k)}
+                    style={analysisTab === k ? { background: "var(--accent)", color: "var(--on-accent)", borderColor: "transparent" } : undefined}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {analysisTab === "coverage" ? <TeamAnalysis team={team} /> : <MetaMatchups team={team} />}
           </section>
         )}
       </div>
