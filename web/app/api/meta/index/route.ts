@@ -13,45 +13,85 @@ import { NextResponse } from "next/server";
 
 interface PrimaryForm {
   types?: string[];
+  image_path?: string;
   hp?: number; attack?: number; defense?: number;
   sp_attack?: number; sp_defense?: number; speed?: number;
+}
+interface FormSummary extends PrimaryForm {
+  form_name?: string;
+  form_kind?: string;
+  slug?: string;
+}
+
+// Build an absolute URL to the upstream sprite from its stored path so every
+// form (base, regional, Mega) renders from the same authoritative asset set.
+function spriteFromPath(path?: string): string {
+  if (!path) return "";
+  const clean = path.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/");
+  return `https://championsbattledata.com/${clean}`;
 }
 interface IndexRecord {
   name?: string;
   battleName?: string;
   slug?: string;
   battleDataCsvs?: { format?: string }[];
-  summary?: { primary?: PrimaryForm };
+  summary?: { primary?: PrimaryForm; forms?: FormSummary[] };
 }
 
 const baseFromLv50 = (stat: number, isHp: boolean) =>
   Math.max(0, (stat || 0) - (isHp ? 75 : 20));
 
+const statsOf = (f: PrimaryForm) => [
+  baseFromLv50(f.hp ?? 0, true),
+  baseFromLv50(f.attack ?? 0, false),
+  baseFromLv50(f.defense ?? 0, false),
+  baseFromLv50(f.sp_attack ?? 0, false),
+  baseFromLv50(f.sp_defense ?? 0, false),
+  baseFromLv50(f.speed ?? 0, false),
+];
+
 export async function GET() {
   try {
-    const r = await fetch("https://championsbattledata.com/api", { signal: AbortSignal.timeout(15000) });
+    // The upstream index is ~15 MB — bigger than Next's 2 MB fetch-cache limit,
+    // so we must opt out of fetch caching (otherwise the cache layer fails and the
+    // route returns empty). Edge caching is handled by the Cache-Control header below.
+    const r = await fetch("https://championsbattledata.com/api", { cache: "no-store", signal: AbortSignal.timeout(20000) });
     if (!r.ok) return NextResponse.json({ pokemon: [] });
     const data = await r.json();
-    const pokemon = ((data.pokemon as IndexRecord[]) || []).map((rec) => {
+    const pokemon = ((data.pokemon as IndexRecord[]) || []).flatMap((rec) => {
+      const name = rec.battleName || rec.name || "";
+      if (!name) return [];
       const p = rec.summary?.primary || {};
       const formats = [...new Set((rec.battleDataCsvs || []).map((c) => c.format).filter(Boolean))];
-      const stats = [
-        baseFromLv50(p.hp ?? 0, true),
-        baseFromLv50(p.attack ?? 0, false),
-        baseFromLv50(p.defense ?? 0, false),
-        baseFromLv50(p.sp_attack ?? 0, false),
-        baseFromLv50(p.sp_defense ?? 0, false),
-        baseFromLv50(p.speed ?? 0, false),
-      ];
-      return {
-        name: rec.battleName || rec.name || "",
-        slug: rec.slug || "",
-        types: p.types || [],
-        bst: stats.reduce((s, v) => s + v, 0),
-        stats,
-        formats,
+
+      const base = {
+        name, slug: rec.slug || "", baseName: name, form: null as string | null,
+        types: p.types || [], stats: statsOf(p), bst: statsOf(p).reduce((s, v) => s + v, 0), formats,
+        sprite: spriteFromPath(p.image_path),
       };
-    }).filter((p) => p.name);
+
+      // Mega Evolutions live only in `summary.forms` and carry their own stats —
+      // include them so the speed tiers (and the simulator) cover Megas. Their
+      // usage rank is inherited from the base species (you bring the base mon).
+      const megas = (rec.summary?.forms || [])
+        .filter((f) => (f.form_kind || "").startsWith("Mega"))
+        .map((f) => {
+          const stats = statsOf(f);
+          return {
+            name: f.form_name || `Mega ${name}`,
+            slug: f.slug || `${rec.slug || name}-${(f.form_kind || "mega").toLowerCase().replace(/\s+/g, "-")}`,
+            baseName: name,
+            form: f.form_kind || "Mega",
+            types: f.types || p.types || [],
+            stats,
+            bst: stats.reduce((s, v) => s + v, 0),
+            formats,
+            sprite: spriteFromPath(f.image_path),
+          };
+        });
+
+      return [base, ...megas];
+    });
     return NextResponse.json({ pokemon }, {
       headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" },
     });

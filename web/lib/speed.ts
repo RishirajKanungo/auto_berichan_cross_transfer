@@ -68,6 +68,8 @@ export interface AbilityDef {
   prio?: { bonus: number; test: (m: MoveLite) => boolean };
   /** Always acts last within its priority bracket (Stall). */
   orderLast?: boolean;
+  /** Status moves act last within their bracket (Mycelium Might). */
+  statusLast?: boolean;
   note?: string;
 }
 
@@ -85,6 +87,8 @@ export const ABILITIES: AbilityDef[] = [
   { id: "triage", label: "Triage (+3 healing)", prio: { bonus: 3, test: (m) => (m.flags ?? []).includes("Heal") } },
   // Order-within-bracket abilities.
   { id: "stall", label: "Stall (moves last)", orderLast: true },
+  { id: "myceliummight", label: "Mycelium Might (status last)", statusLast: true, note: "Status moves act last in their bracket (and ignore the foe's ability)." },
+  { id: "quickdraw", label: "Quick Draw (30% first)", note: "30% chance to act first in bracket (random)." },
 ];
 
 export const ABILITY = (id: string) => ABILITIES.find((a) => a.id === id) ?? ABILITIES[0];
@@ -130,6 +134,8 @@ export interface Combatant {
   booster: boolean;       // Protosynthesis / Quark Drive on Speed (×1.5)
   ability: string;        // an ABILITIES id
   stage: number;          // -6..+6
+  quash: boolean;         // forced to act last this turn
+  afterYou: boolean;      // forced to act next/first this turn
 }
 
 export function effectiveSpeed(c: Combatant, weather: Weather): number {
@@ -145,4 +151,50 @@ export function effectiveSpeed(c: Combatant, weather: Weather): number {
   if (ab.speedMult) mult *= ab.speedMult;
   if (c.paralyzed) mult *= 0.5; // Gen 7+: paralysis halves Speed
   return Math.floor(s * mult);
+}
+
+export interface Resolved {
+  index: number;
+  priority: number;
+  speed: number;
+  last: boolean;   // acts last within its bracket
+  bucket: number;  // -1 After You (first), 0 normal, 1 Quash (last)
+  pos: number;     // 1-based move-order position (ties share a position)
+  tie: boolean;    // genuine speed tie (resolved 50/50 in-game)
+}
+
+/**
+ * Full turn-order resolution. Precedence, highest first:
+ *   1. After You (forced first) → normal → Quash (forced last)
+ *   2. priority bracket (Trick Room never flips this)
+ *   3. "moves last in bracket" effects (Stall, Lagging Tail, Mycelium Might status)
+ *   4. Speed — Trick Room reverses Speed only, within the bracket
+ */
+export function resolveOrder(
+  list: { combatant: Combatant; move: MoveLite | null }[],
+  opts: { trickRoom: boolean; weather: Weather; terrain: Terrain },
+): Resolved[] {
+  const rows = list.map((x, index) => {
+    const c = x.combatant;
+    const ab = ABILITY(c.ability);
+    const last = !!ab.orderLast || !!ITEM(c.item).orderLast || (!!ab.statusLast && x.move?.category === "Status");
+    return {
+      index,
+      priority: effectivePriority(x.move, c.ability, opts.terrain),
+      speed: effectiveSpeed(c, opts.weather),
+      last,
+      bucket: c.afterYou ? -1 : c.quash ? 1 : 0,
+    };
+  });
+  rows.sort((a, b) =>
+    a.bucket !== b.bucket ? a.bucket - b.bucket
+    : a.priority !== b.priority ? b.priority - a.priority
+    : a.last !== b.last ? (a.last ? 1 : -1)
+    : opts.trickRoom ? a.speed - b.speed : b.speed - a.speed,
+  );
+  const sig = (r: (typeof rows)[number]) => `${r.bucket}|${r.priority}|${r.last}|${r.speed}`;
+  return rows.map((r) => {
+    const first = rows.findIndex((y) => sig(y) === sig(r));
+    return { ...r, pos: first + 1, tie: rows.filter((y) => sig(y) === sig(r)).length > 1 };
+  });
 }

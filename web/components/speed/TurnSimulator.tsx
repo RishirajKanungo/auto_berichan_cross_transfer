@@ -6,13 +6,14 @@ import { MetaSprite } from "@/components/MetaSprite";
 import { Combobox } from "@/components/ui/Combobox";
 import { allMoveNames, getMove } from "@/lib/data";
 import {
-  ABILITIES, ABILITY, effectivePriority, effectiveSpeed, ITEM, ITEMS, REDIRECTION_MOVES,
+  ABILITIES, ABILITY, effectivePriority, effectiveSpeed, ITEM, ITEMS, REDIRECTION_MOVES, resolveOrder,
   type Combatant, type MoveLite, type NatureDir, type Terrain, type Weather,
 } from "@/lib/speed";
 import type { MetaIndexEntry } from "@/lib/meta";
 
 interface Slot extends Combatant {
   name: string;
+  sprite?: string;
   side: 0 | 1;
   move: string;
 }
@@ -21,7 +22,7 @@ const SIDE_LABEL = ["Your side", "Opponent"];
 const SIDE_COLOR = ["#2980ef", "#e62829"];
 
 function blankSlot(side: 0 | 1): Slot {
-  return { name: "", move: "", base: 0, sp: 32, dir: "neutral", item: "none", tailwind: false, paralyzed: false, booster: false, ability: "none", stage: 0, side };
+  return { name: "", move: "", base: 0, sp: 32, dir: "neutral", item: "none", tailwind: false, paralyzed: false, booster: false, ability: "none", stage: 0, quash: false, afterYou: false, side };
 }
 
 const WEATHERS: { id: Weather; label: string }[] = [
@@ -40,7 +41,9 @@ const moveLite = (name: string): MoveLite | null => {
 const priLabel = (p: number) => (p > 0 ? `+${p}` : `${p}`);
 
 export function TurnSimulator({ entries }: { entries: MetaIndexEntry[] }) {
-  const [slots, setSlots] = useState<Slot[]>([blankSlot(0), blankSlot(0), blankSlot(1), blankSlot(1)]);
+  // Laid out like a VGC battle: opponent's two slots on top, your two on the
+  // bottom (a 2×2 grid renders slots[0,1] as the top row, slots[2,3] below).
+  const [slots, setSlots] = useState<Slot[]>([blankSlot(1), blankSlot(1), blankSlot(0), blankSlot(0)]);
   const [trickRoom, setTrickRoom] = useState(false);
   const [weather, setWeather] = useState<Weather>("none");
   const [terrain, setTerrain] = useState<Terrain>("none");
@@ -52,32 +55,17 @@ export function TurnSimulator({ entries }: { entries: MetaIndexEntry[] }) {
 
   const pick = (i: number, name: string) => {
     const e = entries.find((x) => x.name.toLowerCase() === name.trim().toLowerCase());
-    update(i, { name, base: e ? e.stats[5] : 0 });
+    update(i, { name, base: e ? e.stats[5] : 0, sprite: e?.sprite });
   };
 
-  // Resolve turn order: priority bracket first (Trick Room does NOT reverse
-  // priority), then "moves last" effects, then Speed (TR reverses Speed only).
+  // Resolve turn order (priority bracket → bracket-order effects → Speed/TR,
+  // with After You / Quash overrides). See resolveOrder in lib/speed.
   const order = useMemo(() => {
     const active = slots
-      .map((s, idx) => {
-        const mv = moveLite(s.move);
-        const prio = effectivePriority(mv, s.ability, terrain);
-        const last = ABILITY(s.ability).orderLast || ITEM(s.item).orderLast || false;
-        return { idx, slot: s, move: mv, prio, last, speed: effectiveSpeed(s, weather) };
-      })
+      .map((slot, idx) => ({ idx, slot, move: moveLite(slot.move) }))
       .filter((x) => x.slot.name && x.slot.base > 0);
-
-    active.sort((a, b) =>
-      a.prio !== b.prio ? b.prio - a.prio
-      : a.last !== b.last ? (a.last ? 1 : -1)
-      : trickRoom ? a.speed - b.speed : b.speed - a.speed,
-    );
-
-    const sig = (x: typeof active[number]) => `${x.prio}|${x.last}|${x.speed}`;
-    return active.map((x) => {
-      const first = active.findIndex((y) => sig(y) === sig(x));
-      return { ...x, pos: first + 1, tie: active.filter((y) => sig(y) === sig(x)).length > 1 };
-    });
+    const resolved = resolveOrder(active.map((x) => ({ combatant: x.slot, move: x.move })), { trickRoom, weather, terrain });
+    return resolved.map((r) => ({ ...active[r.index], ...r }));
   }, [slots, trickRoom, weather, terrain]);
 
   return (
@@ -123,22 +111,25 @@ export function TurnSimulator({ entries }: { entries: MetaIndexEntry[] }) {
               <ol className="space-y-1.5">
                 {order.map((x) => {
                   const redirect = REDIRECTION_MOVES.has(x.slot.move);
-                  const psyBlocked = terrain === "psychic" && x.move && x.prio > 0 && x.move.category !== "Status";
+                  const psyBlocked = terrain === "psychic" && x.move && x.priority > 0 && x.move.category !== "Status";
                   return (
                     <li key={x.idx} className="rounded-lg p-1.5" style={{ background: "var(--panel)" }}>
                       <div className="flex items-center gap-2.5">
                         <span className="w-6 text-center text-lg font-black tabular-nums" style={{ color: x.tie ? "var(--muted)" : "var(--accent)" }}>
                           {x.tie ? "=" : x.pos}
                         </span>
-                        <MetaSprite name={x.slot.name} size={36} className="shrink-0" />
+                        <MetaSprite name={x.slot.name} src={x.slot.sprite} size={36} className="shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <span className="truncate text-sm font-semibold">{x.slot.name}</span>
-                            {x.prio !== 0 && (
-                              <span className="rounded px-1 text-[9px] font-bold" style={{ background: x.prio > 0 ? "#3fa129" : "#9141cb", color: "#fff" }}>
-                                {priLabel(x.prio)} prio
+                            {x.priority !== 0 && (
+                              <span className="rounded px-1 text-[9px] font-bold" style={{ background: x.priority > 0 ? "#3fa129" : "#9141cb", color: "#fff" }}>
+                                {priLabel(x.priority)} prio
                               </span>
                             )}
+                            {x.bucket === -1 && <span className="rounded px-1 text-[9px] font-bold text-white" style={{ background: "#2980ef" }}>After You</span>}
+                            {x.bucket === 1 && <span className="rounded px-1 text-[9px] font-bold text-white" style={{ background: "#624d4e" }}>Quashed</span>}
+                            {x.last && <span className="rounded px-1 text-[9px] font-bold" style={{ background: "var(--border)" }}>last in bracket</span>}
                           </div>
                           <div className="text-[10px]" style={{ color: SIDE_COLOR[x.slot.side] }}>
                             {SIDE_LABEL[x.slot.side]}{x.slot.move ? ` · ${x.slot.move}` : ""}
@@ -194,7 +185,7 @@ function SlotCard({
         <button className="muted ml-auto text-[10px] underline" onClick={() => onUpdate({ side: slot.side === 0 ? 1 : 0 })}>switch side</button>
       </div>
       <div className="flex items-center gap-2">
-        {active && <MetaSprite name={slot.name} size={40} className="shrink-0" />}
+        {active && <MetaSprite name={slot.name} src={slot.sprite} size={40} className="shrink-0" />}
         <div className="flex-1"><Combobox value={slot.name} onChange={onPick} options={names} placeholder="Pick Pokémon" /></div>
         {active && <div className="text-right"><div className="text-lg font-black tabular-nums leading-none">{speed}</div><div className="muted text-[9px]">Spe</div></div>}
       </div>
@@ -244,6 +235,12 @@ function SlotCard({
               <span className="w-7 text-center text-xs tabular-nums">{slot.stage > 0 ? `+${slot.stage}` : slot.stage}</span>
               <button className="btn btn-icon" onClick={() => onUpdate({ stage: Math.min(6, slot.stage + 1) })} aria-label="Raise"><Plus size={12} /></button>
             </div>
+          </div>
+
+          {/* Turn-action overrides a partner can apply this turn. */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Toggle on={slot.afterYou} onClick={() => onUpdate({ afterYou: !slot.afterYou, quash: false })}>After You (acts first)</Toggle>
+            <Toggle on={slot.quash} onClick={() => onUpdate({ quash: !slot.quash, afterYou: false })}>Quash (acts last)</Toggle>
           </div>
 
           {(abNote || itNote) && (

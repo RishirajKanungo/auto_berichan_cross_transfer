@@ -63,7 +63,8 @@ export default function MetaPage() {
     if (!all) return [];
     const q = query.trim().toLowerCase();
     const list: Ranked[] = all
-      .filter((e) => e.formats.includes(format) && (!q || e.name.toLowerCase().includes(q)))
+      // Megas have no separate usage data upstream — the Meta tab shows base forms.
+      .filter((e) => !e.form && e.formats.includes(format) && (!q || e.name.toLowerCase().includes(q)))
       .map((e) => ({ ...e, rank: ranks?.get(normalizeMonName(e.name)) ?? null }));
 
     const def = SORTS.find((s) => s.key === sort)!;
@@ -213,7 +214,7 @@ function MetaCard({ entry, onClick }: { entry: Ranked; onClick: () => void }) {
         </span>
       )}
 
-      <MetaSprite name={entry.name} size={52} className="shrink-0 transition-transform duration-150 group-hover:scale-110" />
+      <MetaSprite name={entry.name} src={entry.sprite} size={52} className="shrink-0 transition-transform duration-150 group-hover:scale-110" />
       <div className="min-w-0">
         <div className="truncate pr-6 text-sm font-bold">{entry.name}</div>
         <div className="mt-0.5 flex items-center gap-1">

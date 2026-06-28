@@ -44,6 +44,9 @@ export interface MetaIndexEntry {
   bst: number;
   stats: number[];     // [HP, Atk, Def, SpA, SpD, Spe]
   formats: string[];   // formats this Pokémon has data for ("Doubles" / "Singles")
+  baseName?: string;   // base species (== name for base forms; the base for Megas)
+  form?: string | null; // null for the base form, else "Mega" / "Mega X" / "Mega Y"
+  sprite?: string;     // authoritative upstream sprite URL (covers Megas/forms)
 }
 
 let indexCache: MetaIndexEntry[] | null = null;

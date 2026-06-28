@@ -44,7 +44,8 @@ export function SpeedTiersTable({
       .map((e) => {
         const vals: Record<string, number> = {};
         for (const c of SPEED_COLS) vals[c.key] = c.calc(e.stats[5]);
-        return { ...e, rank: ranks?.get(normalizeMonName(e.name)) ?? null, vals };
+        // Megas inherit their base species' usage rank (you bring the base mon).
+        return { ...e, rank: ranks?.get(normalizeMonName(e.baseName ?? e.name)) ?? null, vals };
       });
     list.sort((a, b) => b.vals[sortCol] - a.vals[sortCol] || a.name.localeCompare(b.name));
     return list;
@@ -141,11 +142,12 @@ export function SpeedTiersTable({
                   <tr key={r.slug} className="border-t" style={{ borderColor: "var(--border)", background: tint }}>
                     <td className="px-3 py-1.5">
                       <div className="flex items-center gap-2">
-                        <MetaSprite name={r.name} size={32} className="shrink-0" />
+                        <MetaSprite name={r.name} src={r.sprite} size={32} className="shrink-0" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             {r.rank != null && <span className="muted text-[10px] tabular-nums">#{r.rank}</span>}
                             <span className="truncate font-medium">{r.name}</span>
+                            {r.form && <span className="rounded px-1 text-[8px] font-bold uppercase text-white" style={{ background: "#9141cb" }}>{r.form}</span>}
                           </div>
                           <div className="mt-0.5 flex gap-1">
                             {r.types.map((t) => (
@@ -167,6 +169,13 @@ export function SpeedTiersTable({
                   </tr>
                 );
               })}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={SPEED_COLS.length + 1} className="muted p-8 text-center text-sm">
+                    No Pokémon to show{query ? ` for “${query}”` : ""} in {format}.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

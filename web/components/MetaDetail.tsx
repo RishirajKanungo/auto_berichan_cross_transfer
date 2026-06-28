@@ -111,7 +111,7 @@ export function MetaDetail({
       className="max-w-5xl"
       title={
         <div className="flex items-center gap-3">
-          <MetaSprite name={entry.name} size={40} />
+          <MetaSprite name={entry.name} src={entry.sprite} size={40} />
           <div>
             <div className="flex items-center gap-2 leading-tight">
               {speciesName}
