@@ -1,10 +1,11 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Pencil, X } from "lucide-react";
-import { getMove, getSpecies, itemIconUrl } from "@/lib/data";
-import { spriteUrl, typeIconUrl } from "@/lib/assets";
+import { getMove, itemIconUrl } from "@/lib/data";
+import { typeIconUrl } from "@/lib/assets";
 import { displayName } from "@/lib/teamParser";
 import type { Pokemon } from "@/lib/types";
+import { MetaSprite } from "./MetaSprite";
 
 export function PokemonCard({
   mon, index, total, onEdit, onRemove, onMoveUp, onMoveDown,
@@ -17,7 +18,6 @@ export function PokemonCard({
   onMoveUp: () => void;
   onMoveDown: () => void;
 }) {
-  const sp = getSpecies(mon.species);
   const itemIcon = mon.item ? itemIconUrl(mon.item) : null;
   const meta = [mon.item && `@ ${mon.item}`, mon.ability, mon.teraType && `Tera ${mon.teraType}`, mon.nature]
     .filter(Boolean)
@@ -28,10 +28,7 @@ export function PokemonCard({
       <span className="w-5 text-center text-lg font-bold accent-text">{index + 1}</span>
 
       <div className="relative shrink-0">
-        {sp && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={spriteUrl(sp.id)} alt={mon.species} width={56} height={56} />
-        )}
+        <MetaSprite name={mon.species} size={56} />
         {itemIcon && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={itemIcon} alt={mon.item} title={mon.item} width={24} height={24}

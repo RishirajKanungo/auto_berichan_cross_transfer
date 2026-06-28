@@ -3,29 +3,37 @@
 import { useState } from "react";
 import { getSpecies } from "@/lib/data";
 import { spriteUrl } from "@/lib/assets";
-import { remoteSpriteUrl } from "@/lib/meta";
+import { spriteCandidates } from "@/lib/meta";
 
 /**
- * Sprite for a competitive (meta) Pokémon. Prefers the bundled local sprite when
- * the name maps to a Champions species; otherwise (Megas and other forms) uses
- * the authoritative upstream asset — pass `src` (the index entry's sprite URL)
- * for guaranteed-correct form sprites, else it falls back to a name-derived URL.
- * Swaps to the fallback on load error so nothing ever renders broken.
+ * Sprite for a competitive (meta) Pokémon. Tries, in order: the bundled local
+ * sprite (when the name maps to a Champions species), an explicit `src` (the
+ * index entry's authoritative sprite), then upstream assets under both the
+ * name as-given and its form-normalized spelling. Walks the list on load error
+ * so Megas / regional forms never render broken, whatever the naming.
  */
 export function MetaSprite({ name, src, size = 56, className }: { name: string; src?: string; size?: number; className?: string }) {
   const local = getSpecies(name);
-  const fallback = src || remoteSpriteUrl(name);
-  const [current, setCurrent] = useState(local ? spriteUrl(local.id) : fallback);
+  const candidates = spriteCandidates(name, src, local ? spriteUrl(local.id) : undefined);
+
+  const [idx, setIdx] = useState(0);
+  // Reset to the first candidate when the Pokémon (or its candidates) changes.
+  const [key, setKey] = useState(name + "|" + (src ?? ""));
+  const cur = name + "|" + (src ?? "");
+  if (key !== cur) { setKey(cur); setIdx(0); }
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={current}
+      src={candidates[Math.min(idx, candidates.length - 1)]}
       alt={name}
       width={size}
       height={size}
       className={className}
+      loading="lazy"
+      decoding="async"
       style={{ imageRendering: "auto" }}
-      onError={() => { if (current !== fallback) setCurrent(fallback); }}
+      onError={() => setIdx((i) => (i + 1 < candidates.length ? i + 1 : i))}
     />
   );
 }

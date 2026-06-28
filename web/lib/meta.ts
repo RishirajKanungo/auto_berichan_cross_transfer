@@ -68,6 +68,32 @@ export function remoteSpriteUrl(name: string): string {
   return `https://championsbattledata.com/pokemon_champions_assets/pokemon/${encodeURIComponent(name)}.png`;
 }
 
+/** Convert a Showdown-style form name to the upstream asset's naming, e.g.
+ *  "Garchomp-Mega" → "Mega Garchomp", "Arcanine-Hisui" → "Hisuian Arcanine",
+ *  "Indeedee-F" → "Indeedee Female". Inverse of toCalcSpecies. */
+export function championsAssetName(name: string): string {
+  let m = name.match(/^(.+)-Mega(?:-([XY]))?$/);
+  if (m) return `Mega ${m[1]}${m[2] ? ` ${m[2]}` : ""}`;
+  const REGION: Record<string, string> = { Hisui: "Hisuian", Alola: "Alolan", Galar: "Galarian", Paldea: "Paldean" };
+  m = name.match(/^(.+)-(Hisui|Alola|Galar|Paldea)$/);
+  if (m) return `${REGION[m[2]]} ${m[1]}`;
+  if (name.endsWith("-F")) return `${name.slice(0, -2)} Female`;
+  if (name.endsWith("-M")) return `${name.slice(0, -2)} Male`;
+  return name.replace(/-/g, " ");
+}
+
+/** Ordered list of sprite URLs to try (most-specific first); the renderer walks
+ *  these on load error so Megas/forms never render broken regardless of naming. */
+export function spriteCandidates(name: string, explicit?: string, localUrl?: string): string[] {
+  const out: string[] = [];
+  if (localUrl) out.push(localUrl);
+  if (explicit) out.push(explicit);
+  out.push(remoteSpriteUrl(name));
+  const alt = championsAssetName(name);
+  if (alt !== name) out.push(remoteSpriteUrl(alt));
+  return [...new Set(out)];
+}
+
 // --- usage ranking ---------------------------------------------------------
 // The ranked ladder (pokechamdb) and the roster (championsbattledata) name a
 // handful of regional/alternate forms differently, so we join on a normalized
