@@ -1,6 +1,10 @@
 # Secrets / local config
 .env
 
+# Internal / not for the public repo (kept locally)
+.claude/
+tests/
+
 # Python
 __pycache__/
 *.pyc
