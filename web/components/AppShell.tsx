@@ -1,6 +1,7 @@
 "use client";
 
 import { Boxes, Repeat } from "lucide-react";
+import { AuthButton } from "./AuthButton";
 import { THEMES, useTheme } from "./theme";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -24,7 +25,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </nav>
 
-        <div className="mt-auto">
+        <div className="mt-auto space-y-3">
+          <AuthButton />
+          <div>
           <div className="muted mb-1 px-2 text-xs">Appearance</div>
           <div className="grid grid-cols-3 gap-1">
             {THEMES.map((t) => (
@@ -37,6 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {t.label}
               </button>
             ))}
+          </div>
           </div>
         </div>
       </aside>

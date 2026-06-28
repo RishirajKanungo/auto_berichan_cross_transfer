@@ -3,16 +3,19 @@
 import { useState } from "react";
 import { Download, FolderOpen, Plus, Save, Upload } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { useAuth } from "@/components/auth";
 import { PokemonCard } from "@/components/PokemonCard";
 import { PokemonEditor } from "@/components/PokemonEditor";
 import { SpeciesPicker } from "@/components/SpeciesPicker";
 import { Modal } from "@/components/ui/Modal";
 import { getSpecies } from "@/lib/data";
 import { parseTeam, teamToShowdown } from "@/lib/teamParser";
-import { deleteTeam, listTeams, loadTeam, saveTeam } from "@/lib/teamStore";
+import { deleteTeam, listTeams, loadTeam, saveTeam } from "@/lib/teams";
 import type { Pokemon, Species } from "@/lib/types";
 
 export default function Page() {
+  const { authEnabled, signedIn } = useAuth();
+  const cloud = authEnabled && signedIn;
   const [team, setTeam] = useState<Pokemon[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editor, setEditor] = useState<{ open: boolean; mon: Pokemon | null; species: Species | null; index: number }>(
@@ -59,13 +62,26 @@ export default function Page() {
     flash("Showdown export copied to clipboard.");
   };
 
-  const doSave = () => {
+  const doSave = async () => {
     if (!team.length) { flash("Add some Pokémon first."); return; }
     const name = window.prompt("Save team as:");
-    if (name?.trim()) { saveTeam(name.trim(), team); flash(`Saved “${name.trim()}”.`); }
+    if (!name?.trim()) return;
+    try {
+      await saveTeam(cloud, name.trim(), team);
+      flash(`Saved “${name.trim()}”${cloud ? " to your account" : ""}.`);
+    } catch (e) {
+      flash(e instanceof Error ? e.message : "Save failed.");
+    }
   };
 
-  const openLoad = () => { setSavedNames(listTeams()); setLoadOpen(true); };
+  const openLoad = async () => {
+    try {
+      setSavedNames(await listTeams(cloud));
+      setLoadOpen(true);
+    } catch {
+      flash("Could not load saved teams.");
+    }
+  };
 
   return (
     <AppShell>
@@ -135,11 +151,11 @@ export default function Page() {
               <div key={name} className="flex items-center gap-2">
                 <button
                   className="btn flex-1 justify-start"
-                  onClick={() => { setTeam(loadTeam(name)); setLoadOpen(false); flash(`Loaded “${name}”.`); }}
+                  onClick={async () => { setTeam(await loadTeam(cloud, name)); setLoadOpen(false); flash(`Loaded “${name}”.`); }}
                 >
                   {name}
                 </button>
-                <button className="btn btn-icon" onClick={() => { deleteTeam(name); setSavedNames(listTeams()); }} aria-label="Delete">✕</button>
+                <button className="btn btn-icon" onClick={async () => { await deleteTeam(cloud, name); setSavedNames(await listTeams(cloud)); }} aria-label="Delete">✕</button>
               </div>
             ))}
           </div>

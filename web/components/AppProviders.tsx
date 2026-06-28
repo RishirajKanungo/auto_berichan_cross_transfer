@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { loadData } from "@/lib/data";
+import { AuthProvider } from "./auth";
 import { ThemeProvider } from "./theme";
 
-/** Loads the bundled datasets once, then renders the app. */
+/** Loads the bundled datasets once, then renders the app (with theme + auth). */
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
@@ -14,13 +15,15 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider>
-      {ready ? (
-        children
-      ) : (
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="muted animate-pulse text-sm">Loading Pokédex…</div>
-        </div>
-      )}
+      <AuthProvider>
+        {ready ? (
+          children
+        ) : (
+          <div className="flex min-h-screen items-center justify-center">
+            <div className="muted animate-pulse text-sm">Loading Pokédex…</div>
+          </div>
+        )}
+      </AuthProvider>
     </ThemeProvider>
   );
 }
