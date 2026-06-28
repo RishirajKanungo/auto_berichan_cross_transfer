@@ -38,6 +38,9 @@ jobs:
       - name: Sanity check (compile sources)
         run: python -m compileall -q berichan
 
+      - name: Run tests
+        run: python -m pytest -q
+
       - name: Build the executable
         run: pyinstaller berichan.spec
 
