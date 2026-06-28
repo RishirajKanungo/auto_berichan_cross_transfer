@@ -10,7 +10,7 @@ import { PokemonEditor } from "@/components/PokemonEditor";
 import { SpeciesPicker } from "@/components/SpeciesPicker";
 import { Modal } from "@/components/ui/Modal";
 import { getSpecies } from "@/lib/data";
-import { parseTeam, teamToShowdown } from "@/lib/teamParser";
+import { normalizeChampionsImport, parseTeam, teamToShowdown } from "@/lib/teamParser";
 import { deleteTeam, listTeams, loadTeam, saveTeam } from "@/lib/teams";
 import type { Pokemon, Species } from "@/lib/types";
 
@@ -49,7 +49,7 @@ export default function Page() {
   };
 
   const doImport = () => {
-    const parsed = parseTeam(importText);
+    const parsed = normalizeChampionsImport(parseTeam(importText));
     if (!parsed.length) { flash("No Pokémon found in that text."); return; }
     setTeam(parsed);
     setImportText("");
@@ -125,13 +125,17 @@ export default function Page() {
 
       <SpeciesPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onPick={openAdd} />
 
-      <PokemonEditor
-        open={editor.open}
-        mon={editor.mon}
-        species={editor.species}
-        onSave={handleSave}
-        onClose={() => setEditor((e) => ({ ...e, open: false }))}
-      />
+      {/* Mount fresh each open so the form always reflects the chosen Pokémon
+          (otherwise state from the previous edit/meta-apply leaks in). */}
+      {editor.open && (
+        <PokemonEditor
+          open
+          mon={editor.mon}
+          species={editor.species}
+          onSave={handleSave}
+          onClose={() => setEditor((e) => ({ ...e, open: false }))}
+        />
+      )}
 
       <Modal
         open={importOpen}

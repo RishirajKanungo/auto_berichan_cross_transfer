@@ -1,7 +1,7 @@
 // Parse Pokémon Showdown exports into structured sets and serialize them back.
 // Ported from berichan/team_parser.py — the round-trip must stay identical.
 
-import { STAT_ORDER, type StatLabel } from "./stats";
+import { SP_MAX_PER_STAT, SP_MAX_TOTAL, STAT_ORDER, spSpreadToEvs, type StatLabel } from "./stats";
 import type { Pokemon } from "./types";
 
 export const TWITCH_MAX_CHAT_LENGTH = 500;
@@ -156,4 +156,21 @@ export function parseTeam(text: string): Pokemon[] {
 
 export function teamToShowdown(team: Pokemon[]): string {
   return team.map(toShowdown).join("\n\n");
+}
+
+/**
+ * Champions team exports put Stat Points (0–32 per stat, ≤66 total) in the EVs
+ * line. Detect that shape and convert to real mainline EVs so the set is properly
+ * invested and legal. Genuine EV spreads (which include values > 32) are left as-is.
+ */
+function looksLikeChampionsSp(evs: Record<StatLabel, number>): boolean {
+  const vals = STAT_ORDER.map((s) => evs[s] ?? 0);
+  const total = vals.reduce((a, b) => a + b, 0);
+  return total > 0 && total <= SP_MAX_TOTAL && vals.every((v) => v <= SP_MAX_PER_STAT);
+}
+
+export function normalizeChampionsImport(team: Pokemon[]): Pokemon[] {
+  return team.map((mon) =>
+    looksLikeChampionsSp(mon.evs) ? syncLines({ ...mon, evs: spSpreadToEvs(mon.evs) }) : mon,
+  );
 }
