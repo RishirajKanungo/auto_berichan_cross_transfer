@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, Repeat } from "lucide-react";
+import { Boxes, Calculator, Repeat } from "lucide-react";
 import { AuthButton } from "./AuthButton";
 import { THEMES, useTheme } from "./theme";
 
 const NAV = [
   { href: "/", label: "Team Builder", icon: Boxes },
   { href: "/trade", label: "Trade", icon: Repeat },
+  { href: "/calc", label: "Damage Calc", icon: Calculator },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

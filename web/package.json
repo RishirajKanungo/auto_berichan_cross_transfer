@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
+    "@smogon/calc": "^0.11.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.21.0",
     "next": "16.2.9",
