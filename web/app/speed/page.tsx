@@ -29,7 +29,7 @@ export default function SpeedPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-6xl">
-        <header className="mb-4 flex flex-wrap items-center gap-3">
+        <header className="mb-6 flex flex-wrap items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold">Speed Tiers</h1>
             <p className="muted text-sm">Pokémon Champions · {format} · who moves first, at a glance</p>

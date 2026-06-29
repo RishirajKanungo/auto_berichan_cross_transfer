@@ -117,7 +117,7 @@ export default function TradePage() {
     <AppShell>
       <div className="mx-auto max-w-3xl">
         <h1 className="mb-1 text-2xl font-bold">Trade</h1>
-        <p className="muted mb-4 text-sm">Auto-post your team to Berichan&apos;s chat and trade into your game.</p>
+        <p className="muted mb-6 text-sm">Auto-post your team to Berichan&apos;s chat and trade into your game.</p>
 
         {!canTrade ? (
           <div className="card p-8 text-center">

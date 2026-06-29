@@ -73,7 +73,7 @@ export default function CalcPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-4xl">
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">Damage Calculator</h1>
           <span className="muted text-xs">Champions · matches the Showdown calc</span>
           <button className="btn ml-auto" onClick={swap}><ArrowLeftRight size={15} /> Swap</button>

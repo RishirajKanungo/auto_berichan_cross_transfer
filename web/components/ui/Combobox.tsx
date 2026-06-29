@@ -29,8 +29,14 @@ export function Combobox({
   useEffect(() => setQuery(value), [value]);
 
   const reposition = () => {
-    const r = inputRef.current?.getBoundingClientRect();
-    if (r) setRect({ left: r.left, top: r.bottom + 4, width: r.width });
+    const el = inputRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    // Account for the app's Display-size (CSS `zoom`): getBoundingClientRect is
+    // in zoomed/visual pixels while a body-portal's fixed coords are pre-zoom, so
+    // divide by the zoom factor (rect width ÷ layout width; 1 when no zoom).
+    const zoom = el.offsetWidth ? r.width / el.offsetWidth : 1;
+    setRect({ left: r.left / zoom, top: r.bottom / zoom + 4, width: el.offsetWidth });
   };
 
   useLayoutEffect(() => {
@@ -51,8 +57,10 @@ export function Combobox({
       if (wrapRef.current?.contains(t) || popRef.current?.contains(t)) return;
       setOpen(false);
     };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    // Capture phase so the outside-click still fires inside modals, whose panel
+    // stops mousedown propagation (otherwise the dropdown wouldn't close there).
+    document.addEventListener("mousedown", onDoc, true);
+    return () => document.removeEventListener("mousedown", onDoc, true);
   }, []);
 
   const q = query.trim().toLowerCase();

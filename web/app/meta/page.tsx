@@ -146,7 +146,7 @@ export default function MetaPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-6xl">
-        <header className="mb-5 flex flex-wrap items-center gap-3">
+        <header className="mb-6 flex flex-wrap items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold">Meta</h1>
             <p className="muted text-sm">

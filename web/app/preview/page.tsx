@@ -96,7 +96,7 @@ export default function PreviewPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-5xl">
-        <header className="mb-4 flex flex-wrap items-center gap-3">
+        <header className="mb-6 flex flex-wrap items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold">Team Preview</h1>
             <p className="muted text-sm">Enter the opponent&apos;s six — see speed, threats, and what to lead. Uses each Pokémon&apos;s most-used set.</p>

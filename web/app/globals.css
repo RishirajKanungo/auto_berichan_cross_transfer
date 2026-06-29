@@ -64,10 +64,10 @@ body {
 .accent-text { color: var(--accent); }
 
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-  padding: 0.5rem 0.85rem; border-radius: 0.55rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 0.5rem 1rem; border-radius: 0.55rem;
   background: var(--panel); border: 1px solid var(--border); color: var(--text);
-  font-size: 0.875rem; font-weight: 500; cursor: pointer;
+  font-size: 0.875rem; font-weight: 500; line-height: 1.2; cursor: pointer; white-space: nowrap;
   transition: border-color .15s, background .15s, transform .05s;
 }
 .btn:hover { border-color: var(--accent); }
@@ -78,9 +78,9 @@ body {
 .btn-icon { padding: 0.4rem; border-radius: 0.5rem; }
 
 .input {
-  width: 100%; padding: 0.45rem 0.65rem; border-radius: 0.5rem;
+  width: 100%; padding: 0.5rem 0.7rem; border-radius: 0.5rem;
   background: var(--panel); border: 1px solid var(--border); color: var(--text);
-  font-size: 0.875rem; outline: none;
+  font-size: 0.875rem; line-height: 1.2; outline: none;
 }
 .input:focus { border-color: var(--accent); }
 
